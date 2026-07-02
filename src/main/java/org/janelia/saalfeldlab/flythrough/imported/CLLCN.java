@@ -25,7 +25,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package org.janelia.saalfeldlab.moviemaker.imported;
+package org.janelia.saalfeldlab.flythrough.imported;
 
 import ij.process.FloatProcessor;
 import mpicbg.ij.integral.BlockStatistics;

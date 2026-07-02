@@ -25,14 +25,14 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package org.janelia.saalfeldlab.moviemaker.core;
+package org.janelia.saalfeldlab.flythrough.core;
 
 import java.awt.Window;
 import java.io.IOException;
 
 import javax.swing.SwingUtilities;
 
-import org.janelia.saalfeldlab.moviemaker.MovieConfig;
+import org.janelia.saalfeldlab.flythrough.MovieConfig;
 
 import bdv.cache.SharedQueue;
 import bdv.util.BdvFunctions;

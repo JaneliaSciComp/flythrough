@@ -25,7 +25,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package org.janelia.saalfeldlab.moviemaker;
+package org.janelia.saalfeldlab.flythrough;
 
 import java.io.File;
 import java.io.FileReader;
@@ -34,8 +34,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.janelia.saalfeldlab.moviemaker.core.Normalization;
-import org.janelia.saalfeldlab.moviemaker.core.ViewTransforms.KeyPoint;
+import org.janelia.saalfeldlab.flythrough.core.Normalization;
+import org.janelia.saalfeldlab.flythrough.core.ViewTransforms.KeyPoint;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -130,7 +130,7 @@ public class MovieConfig {
 
 	/**
 	 * Expanded keyframe timeline ready for
-	 * {@link org.janelia.saalfeldlab.moviemaker.core.MovieRenderer#recordMovie}.
+	 * {@link org.janelia.saalfeldlab.flythrough.core.MovieRenderer#recordMovie}.
 	 */
 	public static class Timeline {
 		public AffineTransform3D[] transforms;

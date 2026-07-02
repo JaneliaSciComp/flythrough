@@ -3,7 +3,7 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.janelia.saalfeldlab</groupId>
-	<artifactId>microscopy-movie-maker</artifactId>
+	<artifactId>flythrough</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<parent>
 		<groupId>org.scijava</groupId>
@@ -11,7 +11,7 @@
 		<version>38.0.1</version>
 	</parent>
 
-	<name>Microscopy Movie Maker</name>
+	<name>Flythrough</name>
 	<description>GUI-driven fly-through movie authoring for large 3D microscopy volumes (N5 / OME-Zarr).</description>
 
 	<organization>
@@ -29,8 +29,8 @@
 
 	<properties>
 		<enforcer.skip>true</enforcer.skip>
-		<package-name>org.janelia.saalfeldlab.moviemaker</package-name>
-		<main-class>org.janelia.saalfeldlab.moviemaker.MovieMaker</main-class>
+		<package-name>org.janelia.saalfeldlab.flythrough</package-name>
+		<main-class>org.janelia.saalfeldlab.flythrough.Flythrough</main-class>
 		<license.licenseName>bsd_3</license.licenseName>
 		<license.copyrightOwners>Howard Hughes Medical Institute</license.copyrightOwners>
 

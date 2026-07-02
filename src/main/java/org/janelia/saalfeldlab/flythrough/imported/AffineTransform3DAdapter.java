@@ -25,44 +25,50 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package org.janelia.saalfeldlab.moviemaker.imported;
+package org.janelia.saalfeldlab.flythrough.imported;
 
-import ij.process.FloatProcessor;
-import net.imglib2.RandomAccessible;
-import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.img.array.ArrayImgs;
-import net.imglib2.type.Type;
-import net.imglib2.type.numeric.real.FloatType;
-import net.imglib2.view.Views;
+import java.lang.reflect.Type;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+
+import net.imglib2.realtransform.AffineTransform3D;
 
 /**
- * The two static helpers from {@code org.janelia.saalfeldlab.hotknife.util.Util}
- * that {@link ImageJStackOp} needs, extracted so this project does not depend on
- * the full hot-knife {@code Util} class.
+ * Gson adapter that (de)serializes an {@link AffineTransform3D} as a flat array
+ * of 12 doubles (row-packed). Copied from
+ * {@code org.janelia.saalfeldlab.ispim.AffineTransform3DAdapter}.
  *
- * @author Stephan Saalfeld &lt;saalfelds@janelia.hhmi.org&gt;
+ * @author Stephan Preibisch
  */
-public final class StackOpUtil {
+public class AffineTransform3DAdapter implements JsonDeserializer<AffineTransform3D>, JsonSerializer<AffineTransform3D> {
 
-	private StackOpUtil() {}
+	@Override
+	public AffineTransform3D deserialize(
+			final JsonElement json,
+			final Type typeOfT,
+			final JsonDeserializationContext context) throws JsonParseException {
 
-	public static <T extends Type<T>> void copy(
-			final RandomAccessible<? extends T> source,
-			final RandomAccessibleInterval<T> target) {
-
-		Views.flatIterable(Views.interval(Views.pair(source, target), target)).forEach(
-				pair -> pair.getB().set(pair.getA()));
+		final JsonArray array = json.getAsJsonArray();
+		final double[] values = new double[array.size()];
+		for (int i = 0; i < values.length; ++i)
+			values[i] = array.get(i).getAsDouble();
+		final AffineTransform3D affine = new AffineTransform3D();
+		affine.set(values);
+		return affine;
 	}
 
-	public static FloatProcessor materialize(final RandomAccessibleInterval<FloatType> source) {
+	@Override
+	public final JsonElement serialize(
+			final AffineTransform3D affine,
+			final Type typeOfSrc,
+			final JsonSerializationContext context) {
 
-		final FloatProcessor target = new FloatProcessor((int) source.dimension(0), (int) source.dimension(1));
-		copy(
-				Views.zeroMin(source),
-				ArrayImgs.floats(
-						(float[]) target.getPixels(),
-						target.getWidth(),
-						target.getHeight()));
-		return target;
+		return context.serialize(affine.getRowPackedCopy());
 	}
 }

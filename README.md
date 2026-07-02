@@ -1,4 +1,4 @@
-# Microscopy Movie Maker
+# Flythrough
 
 A standalone, GUI-driven tool for authoring fly-through movies of large 3D
 microscopy volumes stored as **N5** or **OME-Zarr** (including Zarr v3). It
@@ -20,14 +20,14 @@ dependency on hot-knife**.
 mvn clean package
 ```
 
-produces a runnable uber-jar at `target/microscopy-movie-maker-*.jar`.
+produces a runnable uber-jar at `target/flythrough-*.jar`.
 
 ## Usage
 
 ### 1. Author a movie (GUI)
 
 ```bash
-java -jar target/microscopy-movie-maker-0.0.1-SNAPSHOT.jar
+java -jar target/flythrough-0.0.1-SNAPSHOT.jar
 ```
 
 - **Setup**: enter the data path, output (movie) directory, expansion factor,
@@ -43,7 +43,7 @@ java -jar target/microscopy-movie-maker-0.0.1-SNAPSHOT.jar
 ### 2. Render from a config (headless)
 
 ```bash
-java -jar target/microscopy-movie-maker-0.0.1-SNAPSHOT.jar --config movie-config.json
+java -jar target/flythrough-0.0.1-SNAPSHOT.jar --config movie-config.json
 ```
 
 Writes `img-0000.png`, `img-0001.png`, … into an `images/` subfolder of the

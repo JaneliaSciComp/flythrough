@@ -25,14 +25,14 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package org.janelia.saalfeldlab.moviemaker.core;
+package org.janelia.saalfeldlab.flythrough.core;
 
 import java.io.IOException;
 import java.util.Arrays;
 
-import org.janelia.saalfeldlab.moviemaker.imported.CLLCN;
-import org.janelia.saalfeldlab.moviemaker.imported.ImageJStackOp;
-import org.janelia.saalfeldlab.moviemaker.imported.Lazy;
+import org.janelia.saalfeldlab.flythrough.imported.CLLCN;
+import org.janelia.saalfeldlab.flythrough.imported.ImageJStackOp;
+import org.janelia.saalfeldlab.flythrough.imported.Lazy;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.universe.N5Factory;

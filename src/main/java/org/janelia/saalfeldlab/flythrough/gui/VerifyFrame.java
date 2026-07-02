@@ -25,7 +25,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package org.janelia.saalfeldlab.moviemaker.gui;
+package org.janelia.saalfeldlab.flythrough.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -61,12 +61,12 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
-import org.janelia.saalfeldlab.moviemaker.MovieConfig;
-import org.janelia.saalfeldlab.moviemaker.MovieConfig.Segment;
-import org.janelia.saalfeldlab.moviemaker.MovieMaker;
-import org.janelia.saalfeldlab.moviemaker.core.MovieRenderer;
-import org.janelia.saalfeldlab.moviemaker.core.MovieViewer;
-import org.janelia.saalfeldlab.moviemaker.core.ViewTransforms.KeyPoint;
+import org.janelia.saalfeldlab.flythrough.MovieConfig;
+import org.janelia.saalfeldlab.flythrough.MovieConfig.Segment;
+import org.janelia.saalfeldlab.flythrough.Flythrough;
+import org.janelia.saalfeldlab.flythrough.core.MovieRenderer;
+import org.janelia.saalfeldlab.flythrough.core.MovieViewer;
+import org.janelia.saalfeldlab.flythrough.core.ViewTransforms.KeyPoint;
 
 import bdv.util.BdvStackSource;
 import bdv.viewer.ViewerPanel;
@@ -368,7 +368,7 @@ public class VerifyFrame extends JFrame {
 		new SwingWorker<Void, Void>() {
 			@Override
 			protected Void doInBackground() throws Exception {
-				MovieMaker.render(cfg);
+				Flythrough.render(cfg);
 				return null;
 			}
 

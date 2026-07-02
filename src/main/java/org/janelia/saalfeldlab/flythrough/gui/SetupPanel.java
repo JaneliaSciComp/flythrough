@@ -25,7 +25,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package org.janelia.saalfeldlab.moviemaker.gui;
+package org.janelia.saalfeldlab.flythrough.gui;
 
 import java.awt.BorderLayout;
 import java.awt.GridBagConstraints;
@@ -43,9 +43,9 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingWorker;
 
-import org.janelia.saalfeldlab.moviemaker.MovieConfig;
-import org.janelia.saalfeldlab.moviemaker.core.MovieViewer;
-import org.janelia.saalfeldlab.moviemaker.core.Normalization;
+import org.janelia.saalfeldlab.flythrough.MovieConfig;
+import org.janelia.saalfeldlab.flythrough.core.MovieViewer;
+import org.janelia.saalfeldlab.flythrough.core.Normalization;
 
 import bdv.util.BdvStackSource;
 

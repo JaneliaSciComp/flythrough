@@ -25,7 +25,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package org.janelia.saalfeldlab.moviemaker.gui;
+package org.janelia.saalfeldlab.flythrough.gui;
 
 import java.awt.BorderLayout;
 
@@ -40,10 +40,10 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 
-import org.janelia.saalfeldlab.moviemaker.MovieConfig;
-import org.janelia.saalfeldlab.moviemaker.MovieConfig.Segment;
-import org.janelia.saalfeldlab.moviemaker.core.ViewTransforms;
-import org.janelia.saalfeldlab.moviemaker.core.ViewTransforms.KeyPoint;
+import org.janelia.saalfeldlab.flythrough.MovieConfig;
+import org.janelia.saalfeldlab.flythrough.MovieConfig.Segment;
+import org.janelia.saalfeldlab.flythrough.core.ViewTransforms;
+import org.janelia.saalfeldlab.flythrough.core.ViewTransforms.KeyPoint;
 
 import bdv.util.BdvStackSource;
 import bdv.viewer.ViewerPanel;

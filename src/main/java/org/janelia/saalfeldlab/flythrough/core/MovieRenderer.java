@@ -25,7 +25,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package org.janelia.saalfeldlab.moviemaker.core;
+package org.janelia.saalfeldlab.flythrough.core;
 
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;

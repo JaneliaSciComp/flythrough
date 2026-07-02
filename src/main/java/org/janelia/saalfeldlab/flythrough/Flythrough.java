@@ -25,17 +25,17 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package org.janelia.saalfeldlab.moviemaker;
+package org.janelia.saalfeldlab.flythrough;
 
 import java.io.File;
 import java.util.concurrent.Callable;
 
 import javax.swing.SwingUtilities;
 
-import org.janelia.saalfeldlab.moviemaker.MovieConfig.Timeline;
-import org.janelia.saalfeldlab.moviemaker.core.MovieRenderer;
-import org.janelia.saalfeldlab.moviemaker.core.MovieViewer;
-import org.janelia.saalfeldlab.moviemaker.gui.SetupPanel;
+import org.janelia.saalfeldlab.flythrough.MovieConfig.Timeline;
+import org.janelia.saalfeldlab.flythrough.core.MovieRenderer;
+import org.janelia.saalfeldlab.flythrough.core.MovieViewer;
+import org.janelia.saalfeldlab.flythrough.gui.SetupPanel;
 
 import bdv.util.BdvStackSource;
 import picocli.CommandLine;
@@ -50,15 +50,15 @@ import picocli.CommandLine.Option;
  *   <li>{@code --config <file>}: headless render of a saved config to a PNG sequence.</li>
  * </ul>
  */
-@Command(name = "movie-maker", mixinStandardHelpOptions = true,
+@Command(name = "flythrough", mixinStandardHelpOptions = true,
 		description = "Author and render fly-through movies of 3D microscopy volumes (N5 / OME-Zarr).")
-public class MovieMaker implements Callable<Void> {
+public class Flythrough implements Callable<Void> {
 
 	@Option(names = "--config", description = "Render this movie config JSON headlessly (no GUI).")
 	private File config;
 
 	public static void main(final String... args) {
-		new CommandLine(new MovieMaker()).execute(args);
+		new CommandLine(new Flythrough()).execute(args);
 	}
 
 	@Override

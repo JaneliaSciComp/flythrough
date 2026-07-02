@@ -2,7 +2,7 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>org.janelia.saalfeldlab</groupId>
+	<groupId>org.janelia</groupId>
 	<artifactId>flythrough</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<parent>
@@ -29,8 +29,8 @@
 
 	<properties>
 		<enforcer.skip>true</enforcer.skip>
-		<package-name>org.janelia.saalfeldlab.flythrough</package-name>
-		<main-class>org.janelia.saalfeldlab.flythrough.Flythrough</main-class>
+		<package-name>org.janelia.flythrough</package-name>
+		<main-class>org.janelia.flythrough.Flythrough</main-class>
 		<license.licenseName>bsd_3</license.licenseName>
 		<license.copyrightOwners>Howard Hughes Medical Institute</license.copyrightOwners>
 

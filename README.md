@@ -1,8 +1,10 @@
 # Flythrough
 
 A GUI-driven tool for authoring fly-through movies of large 3D
-microscopy volumes stored as **N5** or **OME-Zarr** (including Zarr v3). It is inspired by the hand-edit movie creation workflow in hot-knife.
+microscopy volumes stored as **N5** or **OME-Zarr** (including Zarr v3). It is heavily inspired by the hand-edit movie creation workflow in hot-knife.
 
+
+The general workflow is as follows:
 ```
 setup → interactive keyframe capture → visual verify/reorder → JSON config → headless PNG render
 ```

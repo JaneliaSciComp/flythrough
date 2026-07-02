@@ -1,18 +1,11 @@
 # Flythrough
 
-A standalone, GUI-driven tool for authoring fly-through movies of large 3D
-microscopy volumes stored as **N5** or **OME-Zarr** (including Zarr v3). It
-turns the old copy-paste-recompile workflow (hand-editing `transforms[]` arrays
-in Java) into a reproducible, config-file-driven pipeline:
+A GUI-driven tool for authoring fly-through movies of large 3D
+microscopy volumes stored as **N5** or **OME-Zarr** (including Zarr v3). It is inspired by the hand-edit movie creation workflow in hot-knife.
 
 ```
 setup → interactive keyframe capture → visual verify/reorder → JSON config → headless PNG render
 ```
-
-The rendering machinery (BigDataViewer offscreen renderer, CLAHE/CLLCN
-normalization, similarity-transform interpolation with acceleration curves) is
-ported from the `saalfeldlab/hot-knife` movie classes, but this project has **no
-dependency on hot-knife**.
 
 ## Build
 

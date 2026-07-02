@@ -32,6 +32,9 @@
 		<n5-universe.version>3.0.1</n5-universe.version>
 		<n5-blosc.version>2.0.0</n5-blosc.version>
 		<n5-zstandard.version>2.0.0</n5-zstandard.version>
+		<!-- n5-universe 3.0.1 requires the AWS SDK v2 based releases -->
+		<n5-aws-s3.version>5.0.0</n5-aws-s3.version>
+		<n5-google-cloud.version>6.0.0</n5-google-cloud.version>
 	</properties>
 
 	<dependencies>
@@ -50,6 +53,17 @@
 			<groupId>org.janelia.saalfeldlab</groupId>
 			<artifactId>n5-imglib2</artifactId>
 			<version>${n5-imglib2.version}</version>
+		</dependency>
+		<!-- N5Factory references the S3 / GCS backends even for local files -->
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-aws-s3</artifactId>
+			<version>${n5-aws-s3.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-google-cloud</artifactId>
+			<version>${n5-google-cloud.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.janelia.saalfeldlab</groupId>

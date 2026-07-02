@@ -17,11 +17,15 @@
 package org.janelia.saalfeldlab.moviemaker.gui;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Image;
-import java.awt.datatransfer.StringSelection;
-import java.awt.datatransfer.Transferable;
+import java.awt.Point;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.ArrayList;
@@ -29,9 +33,7 @@ import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
-import javax.swing.DefaultListCellRenderer;
-import javax.swing.DefaultListModel;
-import javax.swing.DropMode;
+import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -39,7 +41,6 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -47,7 +48,6 @@ import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
-import javax.swing.TransferHandler;
 
 import org.janelia.saalfeldlab.moviemaker.MovieConfig;
 import org.janelia.saalfeldlab.moviemaker.MovieConfig.Segment;
@@ -59,10 +59,11 @@ import bdv.util.BdvStackSource;
 import bdv.viewer.ViewerPanel;
 
 /**
- * Stage 3: verify and time the movie. Each key point gets a thumbnail; the
- * frame count and acceleration of the motion <em>into</em> each key point are
- * editable, the first key point can be held, and the movie can return to the
- * first key point at the end. Thumbnails can be dragged to reorder key points.
+ * Stage 3: verify and time the movie. Each key point row shows a thumbnail and
+ * its own editable frame count + acceleration (the motion INTO that key point),
+ * so segments can be sped up or slowed down individually. The first key point
+ * can be held; the movie can return to it at the end. Rows can be dragged (or
+ * moved with the arrow buttons) to reorder key points.
  */
 public class VerifyFrame extends JFrame {
 
@@ -85,15 +86,11 @@ public class VerifyFrame extends JFrame {
 	private final MovieConfig cfg;
 	private final BdvStackSource<?> bdv;
 
-	private final DefaultListModel<Row> model = new DefaultListModel<>();
-	private final JList<Row> list = new JList<>(model);
+	private final List<Row> rows = new ArrayList<>();
+	private final JPanel rowsPanel = new JPanel();
 
 	private final int thumbWidth = 220;
 	private final int thumbHeight;
-
-	// per-segment editors (bound to the selected row)
-	private final JSpinner segFrames = new JSpinner(new SpinnerNumberModel(120, 0, 100000, 10));
-	private final JComboBox<String> segAccel = new JComboBox<>(MovieRenderer.ACCEL_NAMES);
 
 	// hold / return editors
 	private final JCheckBox holdEnabled = new JCheckBox("Hold on first key point");
@@ -105,7 +102,7 @@ public class VerifyFrame extends JFrame {
 	private final JButton saveButton = new JButton("Save config");
 	private final JButton renderButton = new JButton("Render movie now");
 
-	private boolean updatingEditors = false;
+	private int dragFrom = -1;
 
 	public VerifyFrame(final MovieConfig cfg, final BdvStackSource<?> bdv) {
 		super("Movie Maker – Verify");
@@ -116,35 +113,19 @@ public class VerifyFrame extends JFrame {
 
 		cfg.syncSegments();
 		for (int i = 0; i < cfg.keyPoints.size(); ++i)
-			model.addElement(new Row(cfg.keyPoints.get(i), cfg.segments.get(i)));
+			rows.add(new Row(cfg.keyPoints.get(i), cfg.segments.get(i)));
 
 		buildUi();
 		loadTimingFromConfig();
+		rebuildRows();
 		pack();
+		setSize(Math.max(getWidth(), 520), Math.min(900, thumbHeight * Math.min(rows.size(), 4) + 260));
 		setLocationRelativeTo(null);
 		renderThumbnailsInBackground();
 	}
 
 	private void buildUi() {
-		list.setCellRenderer(new RowRenderer());
-		list.setFixedCellHeight(thumbHeight + 12);
-		list.setDragEnabled(true);
-		list.setDropMode(DropMode.INSERT);
-		list.setTransferHandler(new RowReorderHandler());
-		list.addListSelectionListener(e -> {
-			if (!e.getValueIsAdjusting())
-				pushSelectionToEditors();
-		});
-
-		segFrames.addChangeListener(e -> pullSegmentEditors());
-		segAccel.addActionListener(e -> pullSegmentEditors());
-
-		final JPanel segEditor = new JPanel(new FlowLayout(FlowLayout.LEFT));
-		segEditor.setBorder(BorderFactory.createTitledBorder("Motion INTO selected key point"));
-		segEditor.add(new JLabel("frames:"));
-		segEditor.add(segFrames);
-		segEditor.add(new JLabel("acceleration:"));
-		segEditor.add(segAccel);
+		rowsPanel.setLayout(new BoxLayout(rowsPanel, BoxLayout.Y_AXIS));
 
 		final JPanel holdEditor = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		holdEditor.setBorder(BorderFactory.createTitledBorder("Start"));
@@ -160,12 +141,9 @@ public class VerifyFrame extends JFrame {
 		returnEditor.add(new JLabel("acceleration:"));
 		returnEditor.add(returnAccel);
 
-		final JPanel editors = new JPanel();
-		editors.setLayout(new javax.swing.BoxLayout(editors, javax.swing.BoxLayout.Y_AXIS));
-		editors.add(holdEditor);
-		editors.add(segEditor);
-		editors.add(returnEditor);
-		editors.add(Box.createVerticalGlue());
+		final JScrollPane listScroll = new JScrollPane(rowsPanel);
+		listScroll.setBorder(BorderFactory.createTitledBorder("Key points (drag a thumbnail or use ▲▼ to reorder)"));
+		listScroll.getVerticalScrollBar().setUnitIncrement(16);
 
 		saveButton.addActionListener(e -> onSave());
 		renderButton.addActionListener(e -> onRender());
@@ -173,19 +151,151 @@ public class VerifyFrame extends JFrame {
 		south.add(saveButton);
 		south.add(renderButton);
 
-		final JScrollPane listScroll = new JScrollPane(list);
-		listScroll.setBorder(BorderFactory.createTitledBorder("Key points (drag to reorder)"));
+		// return editor + action buttons stacked at the bottom
+		final JPanel southStack = new JPanel();
+		southStack.setLayout(new BoxLayout(southStack, BoxLayout.Y_AXIS));
+		southStack.add(returnEditor);
+		southStack.add(south);
 
 		getContentPane().setLayout(new BorderLayout());
+		getContentPane().add(holdEditor, BorderLayout.NORTH);
 		getContentPane().add(listScroll, BorderLayout.CENTER);
-		getContentPane().add(editors, BorderLayout.EAST);
-		getContentPane().add(south, BorderLayout.SOUTH);
-
-		if (!model.isEmpty())
-			list.setSelectedIndex(0);
+		getContentPane().add(southStack, BorderLayout.SOUTH);
 	}
 
-	// ---- timing editors ----
+	// ---- row panels ----
+
+	private void rebuildRows() {
+		rowsPanel.removeAll();
+		for (int i = 0; i < rows.size(); ++i)
+			rowsPanel.add(new RowPanel(rows.get(i), i));
+		rowsPanel.revalidate();
+		rowsPanel.repaint();
+	}
+
+	private class RowPanel extends JPanel {
+		private static final long serialVersionUID = 1L;
+		final Row row;
+		final int position;
+
+		RowPanel(final Row row, final int position) {
+			this.row = row;
+			this.position = position;
+			setLayout(new BorderLayout(8, 0));
+			setBorder(BorderFactory.createCompoundBorder(
+					BorderFactory.createMatteBorder(0, 0, 1, 0, Color.LIGHT_GRAY),
+					BorderFactory.createEmptyBorder(4, 4, 4, 4)));
+			setAlignmentX(LEFT_ALIGNMENT);
+			final int h = thumbHeight + 8;
+			setMaximumSize(new Dimension(Integer.MAX_VALUE, h));
+
+			// thumbnail (drag handle)
+			final JLabel thumb = new JLabel();
+			thumb.setPreferredSize(new Dimension(thumbWidth, thumbHeight));
+			thumb.setHorizontalAlignment(JLabel.CENTER);
+			thumb.setOpaque(true);
+			thumb.setBackground(Color.DARK_GRAY);
+			thumb.setToolTipText("Drag to reorder");
+			thumb.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+			if (row.thumb != null)
+				thumb.setIcon(new ImageIcon(row.thumb));
+			else
+				thumb.setText("rendering…");
+			installDrag(thumb);
+			add(thumb, BorderLayout.WEST);
+
+			// controls
+			final JPanel controls = new JPanel();
+			controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
+
+			final JLabel title = new JLabel(String.format("#%d  (%.0f, %.0f, %.0f)  zoom %.5f",
+					position, row.kp.wx, row.kp.wy, row.kp.wz, row.kp.scale));
+			title.setAlignmentX(LEFT_ALIGNMENT);
+			controls.add(title);
+
+			final JPanel timing = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
+			timing.setAlignmentX(LEFT_ALIGNMENT);
+			if (position == 0) {
+				timing.add(new JLabel("start of movie (use \"Hold\" above to pause here)"));
+			} else {
+				final JSpinner frames = new JSpinner(new SpinnerNumberModel(Math.max(0, row.frames), 0, 100000, 10));
+				frames.addChangeListener(e -> row.frames = (Integer) frames.getValue());
+				final JComboBox<String> accel = new JComboBox<>(MovieRenderer.ACCEL_NAMES);
+				accel.setSelectedIndex(clampAccelIndex(row.accel));
+				accel.addActionListener(e -> row.accel = accel.getSelectedIndex());
+				timing.add(new JLabel("frames in:"));
+				timing.add(frames);
+				timing.add(new JLabel("accel:"));
+				timing.add(accel);
+			}
+			controls.add(timing);
+
+			final JPanel move = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
+			move.setAlignmentX(LEFT_ALIGNMENT);
+			final JButton up = new JButton("▲");
+			up.setEnabled(position > 0);
+			up.addActionListener(e -> moveRow(position, position - 1));
+			final JButton down = new JButton("▼");
+			down.setEnabled(position < rows.size() - 1);
+			down.addActionListener(e -> moveRow(position, position + 1));
+			move.add(up);
+			move.add(down);
+			controls.add(move);
+
+			add(controls, BorderLayout.CENTER);
+		}
+
+		private void installDrag(final JComponent handle) {
+			final MouseAdapter ma = new MouseAdapter() {
+				@Override
+				public void mousePressed(final MouseEvent e) {
+					dragFrom = position;
+				}
+
+				@Override
+				public void mouseReleased(final MouseEvent e) {
+					if (dragFrom < 0)
+						return;
+					final Point p = SwingUtilities.convertPoint(handle, e.getPoint(), rowsPanel);
+					final int to = rowIndexAt(p);
+					moveRow(dragFrom, to);
+					dragFrom = -1;
+				}
+			};
+			handle.addMouseListener(ma);
+			handle.addMouseMotionListener(ma);
+		}
+	}
+
+	/** Which row position contains point p (in rowsPanel coordinates); clamps to ends. */
+	private int rowIndexAt(final Point p) {
+		Component c = SwingUtilities.getDeepestComponentAt(rowsPanel, p.x, p.y);
+		while (c != null && !(c instanceof RowPanel))
+			c = c.getParent();
+		if (c instanceof RowPanel)
+			return ((RowPanel) c).position;
+		// past the last row -> drop at the end
+		if (p.y >= rowsPanel.getHeight() - 1)
+			return rows.size() - 1;
+		return dragFrom;
+	}
+
+	private void moveRow(final int from, int to) {
+		if (from < 0 || from >= rows.size())
+			return;
+		to = Math.max(0, Math.min(rows.size() - 1, to));
+		if (from == to)
+			return;
+		final Row r = rows.remove(from);
+		rows.add(to, r);
+		rebuildRows();
+	}
+
+	private static int clampAccelIndex(final int accel) {
+		return Math.max(0, Math.min(MovieRenderer.ACCEL_NAMES.length - 1, accel));
+	}
+
+	// ---- timing config ----
 
 	private void loadTimingFromConfig() {
 		holdEnabled.setSelected(cfg.holdFirstFrames > 0);
@@ -195,38 +305,10 @@ public class VerifyFrame extends JFrame {
 		returnAccel.setSelectedIndex(clampAccelIndex(cfg.returnAccel));
 	}
 
-	private void pushSelectionToEditors() {
-		final Row r = list.getSelectedValue();
-		if (r == null)
-			return;
-		updatingEditors = true;
-		segFrames.setValue(r.frames);
-		segAccel.setSelectedIndex(clampAccelIndex(r.accel));
-		updatingEditors = false;
-	}
-
-	private void pullSegmentEditors() {
-		if (updatingEditors)
-			return;
-		final Row r = list.getSelectedValue();
-		if (r == null)
-			return;
-		r.frames = (Integer) segFrames.getValue();
-		r.accel = segAccel.getSelectedIndex();
-		list.repaint();
-	}
-
-	private static int clampAccelIndex(final int accel) {
-		return Math.max(0, Math.min(MovieRenderer.ACCEL_NAMES.length - 1, accel));
-	}
-
-	// ---- write back to config ----
-
 	private void writeBack() {
 		final List<KeyPoint> kps = new ArrayList<>();
 		final List<Segment> segs = new ArrayList<>();
-		for (int i = 0; i < model.size(); ++i) {
-			final Row r = model.get(i);
+		for (final Row r : rows) {
 			kps.add(r.kp);
 			segs.add(new Segment(r.frames, r.accel));
 		}
@@ -298,11 +380,10 @@ public class VerifyFrame extends JFrame {
 
 	private void renderThumbnailsInBackground() {
 		final ViewerPanel vp = bdv.getBdvHandle().getViewerPanel();
-		new SwingWorker<Void, Integer>() {
+		new SwingWorker<Void, Row>() {
 			@Override
 			protected Void doInBackground() {
-				for (int i = 0; i < model.size(); ++i) {
-					final Row r = model.get(i);
+				for (final Row r : rows) {
 					try {
 						final BufferedImage full = MovieRenderer.renderSingleFrame(
 								vp, cfg.screenWidth, cfg.screenHeight, r.kp.toTransform());
@@ -310,14 +391,19 @@ public class VerifyFrame extends JFrame {
 					} catch (final Exception ex) {
 						ex.printStackTrace();
 					}
-					publish(i);
+					publish(r);
 				}
 				return null;
 			}
 
 			@Override
-			protected void process(final List<Integer> chunks) {
-				list.repaint();
+			protected void process(final List<Row> chunks) {
+				rebuildRows();
+			}
+
+			@Override
+			protected void done() {
+				rebuildRows();
 			}
 		}.execute();
 	}
@@ -329,67 +415,5 @@ public class VerifyFrame extends JFrame {
 		g.drawImage(scaled, 0, 0, null);
 		g.dispose();
 		return dst;
-	}
-
-	private class RowRenderer extends DefaultListCellRenderer {
-		private static final long serialVersionUID = 1L;
-
-		@Override
-		public Component getListCellRendererComponent(final JList<?> l, final Object value, final int index,
-				final boolean isSelected, final boolean cellHasFocus) {
-			super.getListCellRendererComponent(l, value, index, isSelected, cellHasFocus);
-			final Row r = (Row) value;
-			setIcon(r.thumb != null ? new ImageIcon(r.thumb) : null);
-			final String motion = index == 0
-					? "start"
-					: r.frames + " f, " + MovieRenderer.ACCEL_NAMES[clampAccelIndex(r.accel)];
-			setText(String.format("<html>#%d &nbsp; (%.0f, %.0f, %.0f) zoom %.5f<br>into: %s</html>",
-					index, r.kp.wx, r.kp.wy, r.kp.wz, r.kp.scale, motion));
-			setVerticalTextPosition(BOTTOM);
-			setHorizontalTextPosition(RIGHT);
-			return this;
-		}
-	}
-
-	/** Reorder rows within the list by drag and drop. */
-	private class RowReorderHandler extends TransferHandler {
-		private static final long serialVersionUID = 1L;
-		private int fromIndex = -1;
-
-		@Override
-		public int getSourceActions(final JComponent c) {
-			return MOVE;
-		}
-
-		@Override
-		protected Transferable createTransferable(final JComponent c) {
-			fromIndex = list.getSelectedIndex();
-			return new StringSelection("row");
-		}
-
-		@Override
-		public boolean canImport(final TransferSupport support) {
-			return support.isDrop();
-		}
-
-		@Override
-		public boolean importData(final TransferSupport support) {
-			if (!support.isDrop() || fromIndex < 0)
-				return false;
-			final JList.DropLocation dl = (JList.DropLocation) support.getDropLocation();
-			int to = dl.getIndex();
-			if (to > fromIndex)
-				to--;
-			if (to == fromIndex || to < 0 || to > model.size() - 1) {
-				fromIndex = -1;
-				return false;
-			}
-			final Row r = model.remove(fromIndex);
-			model.add(to, r);
-			list.setSelectedIndex(to);
-			fromIndex = -1;
-			SwingUtilities.invokeLater(list::repaint);
-			return true;
-		}
 	}
 }

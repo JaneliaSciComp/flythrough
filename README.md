@@ -101,3 +101,8 @@ Per-level scale / anisotropy is read automatically from the dataset's OME-NGFF
 
 - Single channel (grayscale) to start.
 - PNG frame-sequence output (no built-in video encoding).
+
+## License
+
+BSD 3-Clause. Copyright © 2026 Howard Hughes Medical Institute. See
+[`LICENSE`](LICENSE).

@@ -14,12 +14,25 @@
 	<name>Microscopy Movie Maker</name>
 	<description>GUI-driven fly-through movie authoring for large 3D microscopy volumes (N5 / OME-Zarr).</description>
 
+	<organization>
+		<name>Howard Hughes Medical Institute, Janelia Research Campus</name>
+		<url>https://www.janelia.org</url>
+	</organization>
+
+	<licenses>
+		<license>
+			<name>BSD-3-Clause</name>
+			<url>https://opensource.org/licenses/BSD-3-Clause</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
 	<properties>
 		<enforcer.skip>true</enforcer.skip>
 		<package-name>org.janelia.saalfeldlab.moviemaker</package-name>
 		<main-class>org.janelia.saalfeldlab.moviemaker.MovieMaker</main-class>
-		<license.licenseName>gpl_v2</license.licenseName>
-		<license.copyrightOwners>Saalfeld lab</license.copyrightOwners>
+		<license.licenseName>bsd_3</license.licenseName>
+		<license.copyrightOwners>Howard Hughes Medical Institute</license.copyrightOwners>
 
 		<!-- kept in sync with hot-knife: BDV 10.6.5 + imglib2 8 + N5 4 (Zarr v3) -->
 		<bigdataviewer-core.version>10.6.5</bigdataviewer-core.version>

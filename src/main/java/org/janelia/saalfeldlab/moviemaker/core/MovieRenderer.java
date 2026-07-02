@@ -135,7 +135,7 @@ public final class MovieRenderer {
 	/**
 	 * Render the whole movie as a PNG sequence into {@code dir}.
 	 *
-	 * @param transforms keyframe transforms (origin-centred, from {@code viewCenteredOn})
+	 * @param transforms keyframe feed transforms (canvas-centre translation removed)
 	 * @param frames per-segment frame counts; {@code frames[k]} = motion into transforms[k]
 	 * @param accel per-segment acceleration types
 	 * @param firstTransformIndex index of the first keyframe to render motion into (usually 1)

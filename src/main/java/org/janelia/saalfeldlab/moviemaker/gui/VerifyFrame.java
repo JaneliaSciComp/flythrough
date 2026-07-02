@@ -210,8 +210,9 @@ public class VerifyFrame extends JFrame {
 			final JPanel controls = new JPanel();
 			controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
 
+			final double[] c = row.kp.displayCenter();
 			final JLabel title = new JLabel(String.format("#%d  (%.0f, %.0f, %.0f)  zoom %.5f",
-					position, row.kp.wx, row.kp.wy, row.kp.wz, row.kp.scale));
+					position, c[0], c[1], c[2], row.kp.displayScale()));
 			title.setAlignmentX(LEFT_ALIGNMENT);
 			controls.add(title);
 

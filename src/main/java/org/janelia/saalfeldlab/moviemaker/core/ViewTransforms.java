@@ -22,97 +22,79 @@ import net.imglib2.realtransform.AffineTransform3D;
 /**
  * Keyframe camera positions and the math that captures / rebuilds them.
  *
- * <p>Ported from {@code Fly4LICONNMovie.viewCentredOn} and its interactive
- * "T" capture handler. Keyframes are stored as a world point + zoom
- * ({@link KeyPoint}) rather than a raw matrix, which keeps them independent of
- * the screen / canvas size.</p>
+ * <p>A keyframe stores the full viewer transform (12 row-packed doubles) so that
+ * rotation and any orientation are preserved — not just a centre + zoom.</p>
  */
 public final class ViewTransforms {
 
 	private ViewTransforms() {}
 
 	/**
-	 * A keyframe: the world point (wx,wy,wz) that should sit at the screen
-	 * centre, and the zoom (screen pixels per world unit).
+	 * A keyframe: the full "feed" viewer transform.
+	 *
+	 * <p>The stored transform is the movie-space viewer transform with the
+	 * canvas-centre translation removed, so that when fed through
+	 * {@code SimilarityTransformAnimator} (which adds the canvas centre back at
+	 * render time) it reproduces the exact captured view — independent of the
+	 * movie canvas size.</p>
 	 */
 	public static final class KeyPoint {
 
-		public double wx;
-		public double wy;
-		public double wz;
-		public double scale;
+		/** Full feed transform, 12 row-packed doubles (m00,m01,m02,m03,m10,…,m23). */
+		public double[] transform;
 
 		public KeyPoint() {}
 
-		public KeyPoint(final double wx, final double wy, final double wz, final double scale) {
-			this.wx = wx;
-			this.wy = wy;
-			this.wz = wz;
-			this.scale = scale;
+		public static KeyPoint of(final AffineTransform3D feed) {
+			final KeyPoint kp = new KeyPoint();
+			kp.transform = feed.getRowPackedCopy();
+			return kp;
 		}
 
 		public AffineTransform3D toTransform() {
-			return viewCenteredOn(wx, wy, wz, scale);
+			final AffineTransform3D t = new AffineTransform3D();
+			if (transform != null && transform.length == 12)
+				t.set(transform);
+			return t;
+		}
+
+		/** Zoom (screen pixels per world unit) for display. */
+		public double displayScale() {
+			final AffineTransform3D t = toTransform();
+			return Math.hypot(t.get(0, 0), t.get(0, 1));
+		}
+
+		/** World point at the canvas centre, for display / labels. */
+		public double[] displayCenter() {
+			final double[] c = new double[3];
+			toTransform().applyInverse(c, new double[]{0, 0, 0});
+			return c;
 		}
 
 		@Override
 		public String toString() {
-			return String.format("viewCenteredOn(%.1f, %.1f, %.1f, %.6f)", wx, wy, wz, scale);
+			final double[] c = displayCenter();
+			return String.format("centre (%.1f, %.1f, %.1f) zoom %.6f", c[0], c[1], c[2], displayScale());
 		}
 	}
 
 	/**
-	 * Build a movie-space viewer transform centred on the world point (wx,wy,wz)
-	 * at the given zoom (screen pixels per world unit). The point lands at the
-	 * screen centre and on the current z-slice, so keyframes are defined by WHERE
-	 * in the volume you look and HOW zoomed - never by where the cursor happened
-	 * to be. Reproducible and edge-safe.
+	 * Capture the viewer's current view as a {@link KeyPoint}, preserving the full
+	 * orientation (including rotation).
 	 *
-	 * <p>NOTE: the world point is placed at the ORIGIN (0,0), not the screen
-	 * centre. {@code MovieRenderer} feeds keyframes through
-	 * {@code SimilarityTransformAnimator.get()}, which adds
-	 * (cX,cY) = (width/2, height/2) to the translation. So an origin-centred
-	 * transform ends up centred on screen; a screen-centred one would be shoved
-	 * an extra half-screen into the bottom-right corner.</p>
+	 * <p>The panel's viewer transform maps the source to panel-screen pixels; we
+	 * subtract the panel-centre translation so the transform is expressed relative
+	 * to the canvas centre. {@code SimilarityTransformAnimator} (with rotation
+	 * centre = movie-canvas centre) then adds the movie canvas centre back at
+	 * render time, so the exact view is reproduced regardless of any difference
+	 * between the interactive panel size and the movie canvas size.</p>
 	 */
-	public static AffineTransform3D viewCenteredOn(
-			final double wx,
-			final double wy,
-			final double wz,
-			final double scale) {
+	public static KeyPoint capture(final ViewerPanel vp) {
 
 		final AffineTransform3D t = new AffineTransform3D();
-		t.set(scale, 0, 0, -scale * wx,
-		      0, scale, 0, -scale * wy,
-		      0, 0, scale, -scale * wz);
-		return t;
-	}
-
-	/**
-	 * Capture the viewer's current view as a {@link KeyPoint}.
-	 *
-	 * <p>BDV returns the transform in the panel's logical pixel coordinates, and
-	 * the offline movie renderer also works in logical pixels - so there is no
-	 * HiDPI rescaling to do. The only adjustment is recentring from the
-	 * interactive panel centre to the movie canvas centre, which can differ in
-	 * size (e.g. a 1050x700 panel vs a 1050x750 movie).</p>
-	 */
-	public static KeyPoint capture(final ViewerPanel vp, final int movieWidth, final int movieHeight) {
-
-		final AffineTransform3D transform = new AffineTransform3D();
-		vp.state().getViewerTransform(transform);
-
-		final double corrX = movieWidth  / 2.0 - vp.getWidth()  / 2.0;
-		final double corrY = movieHeight / 2.0 - vp.getHeight() / 2.0;
-		transform.set(transform.get(0, 3) + corrX, 0, 3);
-		transform.set(transform.get(1, 3) + corrY, 1, 3);
-
-		// screen pixels per world unit
-		final double sx = Math.hypot(transform.get(0, 0), transform.get(0, 1));
-		// world point currently at the movie-canvas centre
-		final double[] centre = new double[3];
-		transform.applyInverse(centre, new double[]{movieWidth / 2.0, movieHeight / 2.0, 0});
-
-		return new KeyPoint(centre[0], centre[1], centre[2], sx);
+		vp.state().getViewerTransform(t);
+		t.set(t.get(0, 3) - vp.getWidth() / 2.0, 0, 3);
+		t.set(t.get(1, 3) - vp.getHeight() / 2.0, 1, 3);
+		return KeyPoint.of(t);
 	}
 }

@@ -34,7 +34,7 @@ java -jar target/microscopy-movie-maker-0.0.1-SNAPSHOT.jar
   CLAHE slope, and histogram clip range (min/max).
 - **Navigate**: a BigDataViewer window opens. Pan / zoom / scroll to a view you
   like and press **T** to capture it as a key point. Key points are stored, in
-  order, as world-point + zoom (screen-size independent).
+  order, as the full viewer transform, so rotation is preserved.
 - **Verify**: each key point gets a thumbnail. Set the number of **frames** and
   the **acceleration** curve for each segment between key points, optionally
   **hold** on the first key point, and optionally **return to the first key
@@ -75,7 +75,7 @@ control:
   "returnFrames": 120,
   "returnAccel": 3,
   "keyPoints": [
-    { "wx": 41517.9, "wy": 3347.7, "wz": 27096.0, "scale": 0.117432 }
+    { "transform": [ 0.117432, 0.0, 0.0, -4875.53, 0.0, 0.117432, 0.0, -393.13, 0.0, 0.0, 0.117432, -3181.94 ] }
   ],
   "segments": [
     { "frames": 0, "accel": 0 }
@@ -83,8 +83,12 @@ control:
 }
 ```
 
-- `keyPoints[i]` is a world-point + zoom (`scale` = screen pixels per world
-  unit), built via `viewCenteredOn`.
+- `keyPoints[i].transform` is the full viewer transform as 12 row-packed doubles
+  (`m00, m01, m02, m03, m10, …, m23`). Storing the full matrix — rather than a
+  centre + zoom — preserves rotation and any orientation of the captured view.
+  It is the movie-space viewer transform with the canvas-centre translation
+  removed; the renderer adds the canvas centre back, so it is independent of the
+  movie canvas size.
 - `segments[k]` is the motion from `keyPoints[k-1]` → `keyPoints[k]`
   (`segments[0]` is unused / the arrival at the first key point).
 - Acceleration types: `0` symmetric, `1` slow start, `2` slow end,

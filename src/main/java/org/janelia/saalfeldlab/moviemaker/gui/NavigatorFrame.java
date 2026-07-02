@@ -94,7 +94,7 @@ public class NavigatorFrame extends JFrame {
 		final Behaviours behaviours = new Behaviours(new InputTriggerConfig());
 		behaviours.install(bdv.getBdvHandle().getTriggerbindings(), "movie-maker-capture");
 		behaviours.behaviour((ClickBehaviour) (x, y) -> {
-			final KeyPoint kp = ViewTransforms.capture(vp, cfg.screenWidth, cfg.screenHeight);
+			final KeyPoint kp = ViewTransforms.capture(vp);
 			SwingUtilities.invokeLater(() -> {
 				cfg.keyPoints.add(kp);
 				cfg.segments.add(new Segment(120, 0));
@@ -105,7 +105,8 @@ public class NavigatorFrame extends JFrame {
 	}
 
 	private static String describe(final int index, final KeyPoint kp) {
-		return String.format("%2d:  (%.0f, %.0f, %.0f)  zoom %.5f", index, kp.wx, kp.wy, kp.wz, kp.scale);
+		final double[] c = kp.displayCenter();
+		return String.format("%2d:  (%.0f, %.0f, %.0f)  zoom %.5f", index, c[0], c[1], c[2], kp.displayScale());
 	}
 
 	private void undoLast() {

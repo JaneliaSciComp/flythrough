@@ -380,7 +380,7 @@ public class VerifyFrame extends JFrame {
 				try {
 					get();
 					JOptionPane.showMessageDialog(VerifyFrame.this,
-							"Rendered PNG frames to\n" + cfg.moviePath,
+							"Rendered PNG frames to\n" + new java.io.File(cfg.moviePath, "images"),
 							"Done", JOptionPane.INFORMATION_MESSAGE);
 				} catch (final Exception ex) {
 					ex.printStackTrace();

@@ -46,11 +46,13 @@ java -jar target/microscopy-movie-maker-0.0.1-SNAPSHOT.jar
 java -jar target/microscopy-movie-maker-0.0.1-SNAPSHOT.jar --config movie-config.json
 ```
 
-Writes `img-0000.png`, `img-0001.png`, … into the movie directory. Assemble
-into a video with e.g. ffmpeg:
+Writes `img-0000.png`, `img-0001.png`, … into an `images/` subfolder of the
+movie directory (so the frames stay separate from `movie-config.json`).
+Assemble into a video with e.g. ffmpeg:
 
 ```bash
-ffmpeg -r 30 -i img-%04d.png -c:v libx264 -pix_fmt yuv420p movie.mp4
+cd <moviePath>/images
+ffmpeg -r 30 -i img-%04d.png -c:v libx264 -pix_fmt yuv420p ../movie.mp4
 ```
 
 ## Config file

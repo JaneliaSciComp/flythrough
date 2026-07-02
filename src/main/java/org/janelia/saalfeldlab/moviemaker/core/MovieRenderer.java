@@ -161,7 +161,10 @@ public final class MovieRenderer {
 			final int firstTransformIndex,
 			final String dir) throws IOException {
 
-		new File(dir).mkdirs();
+		// write the PNG frames into an "images" subfolder so they stay separate
+		// from movie-config.json (which lives at the top of the movie dir)
+		final File imagesDir = new File(dir, "images");
+		imagesDir.mkdirs();
 
 		final ViewerState renderState = viewer.state();
 		final ScaleBarOverlayRenderer scalebar = new ScaleBarOverlayRenderer();
@@ -194,8 +197,8 @@ public final class MovieRenderer {
 				tkd.preConcatenate(recentre);
 				final BufferedImage bi = paint(renderer, target, renderState, viewer, tkd, scalebar, box, width, height);
 
-				ImageIO.write(bi, "png", new File(String.format("%s/img-%04d.png", dir, i++)));
-				System.out.println(String.format("%s/img-%04d.png", dir, i));
+				ImageIO.write(bi, "png", new File(imagesDir, String.format("img-%04d.png", i++)));
+				System.out.println(new File(imagesDir, String.format("img-%04d.png", i)));
 			}
 		}
 	}

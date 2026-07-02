@@ -100,12 +100,40 @@ public final class ViewTransforms {
 	 * render time, so the exact view is reproduced regardless of any difference
 	 * between the interactive panel size and the movie canvas size.</p>
 	 */
+	/** Read the level-0 source transform of the viewer's first source (identity if unavailable). */
+	public static AffineTransform3D sourceTransform(final ViewerPanel vp) {
+		final AffineTransform3D t = new AffineTransform3D();
+		try {
+			vp.state().getSources().get(0).getSpimSource().getSourceTransform(0, 0, t);
+		} catch (final Exception e) {
+			// leave identity
+		}
+		return t;
+	}
+
+	/**
+	 * Capture the current view as a {@link KeyPoint}.
+	 *
+	 * <p>We store the <b>source&rarr;screen</b> transform ({@code viewer &middot;
+	 * sourceTransform}), not the viewer (world&rarr;screen) transform. BDV can place
+	 * the source in world space differently between the interactive viewer and a
+	 * freshly-built offscreen viewer (its source transform is not guaranteed stable),
+	 * so anchoring keyframes to the source — the one thing both viewers share — makes
+	 * them reproduce identically. The renderer converts back through whatever source
+	 * transform the offscreen viewer has.</p>
+	 */
 	public static KeyPoint capture(final ViewerPanel vp) {
 
-		final AffineTransform3D t = new AffineTransform3D();
-		vp.state().getViewerTransform(t);
-		t.set(t.get(0, 3) - vp.getWidth() / 2.0, 0, 3);
-		t.set(t.get(1, 3) - vp.getHeight() / 2.0, 1, 3);
-		return KeyPoint.of(t);
+		final AffineTransform3D viewer = new AffineTransform3D();
+		vp.state().getViewerTransform(viewer);
+
+		// source -> screen = viewer (world->screen) ∘ sourceTransform (source->world)
+		final AffineTransform3D sourceToScreen = viewer.copy().concatenate(sourceTransform(vp));
+
+		// express relative to the panel centre; the renderer's SimilarityTransformAnimator
+		// (rotation centre = movie-canvas centre) adds the canvas centre back.
+		sourceToScreen.set(sourceToScreen.get(0, 3) - vp.getWidth() / 2.0, 0, 3);
+		sourceToScreen.set(sourceToScreen.get(1, 3) - vp.getHeight() / 2.0, 1, 3);
+		return KeyPoint.of(sourceToScreen);
 	}
 }

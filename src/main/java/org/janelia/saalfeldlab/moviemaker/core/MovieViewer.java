@@ -64,7 +64,8 @@ public final class MovieViewer {
 				cfg.histogramMax,
 				cfg.expansionFactor,
 				cfg.claheSlope,
-				cfg.scalePrefix);
+				cfg.scalePrefix,
+				interactive);
 
 		final int threads = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
 

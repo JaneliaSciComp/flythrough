@@ -171,6 +171,10 @@ public final class MovieRenderer {
 		final Target target = new Target(width, height);
 		final MultiResolutionRenderer renderer = newRenderer(target);
 
+		// keyframes are stored as source->screen; convert to world->screen for THIS
+		// viewer's source placement so framing matches the interactive capture.
+		final AffineTransform3D[] world = toWorldTransforms(viewer, transforms);
+
 		/* count frame index up to firstTransformIndex */
 		int i = 0;
 		for (int k = 0; k < firstTransformIndex; ++k)
@@ -178,8 +182,8 @@ public final class MovieRenderer {
 
 		for (int k = firstTransformIndex; k < transforms.length; ++k) {
 			final SimilarityTransformAnimator animator = new SimilarityTransformAnimator(
-					transforms[k - 1],
-					transforms[k],
+					world[k - 1],
+					world[k],
 					width / 2.0,
 					height / 2.0,
 					0);
@@ -200,11 +204,9 @@ public final class MovieRenderer {
 	 * Render a single frame at one keyframe (for verify-window thumbnails), using
 	 * the same offscreen path as {@link #recordMovie} so the preview matches output.
 	 *
-	 * <p>The viewer may be backed by a <em>volatile</em> source whose cells load
-	 * asynchronously; {@link MultiResolutionRenderer#paint} returns {@code false}
-	 * while data is still missing. We therefore repaint until it reports the frame
-	 * is fully resolved (or a timeout elapses), so thumbnails are not captured
-	 * black before the data has loaded.</p>
+	 * <p>Backed by a <em>non-volatile</em> source, {@link MultiResolutionRenderer#paint}
+	 * renders synchronously and completely in a single call (as in the hot-knife
+	 * Fly4/Retina movie classes), so we paint once — no repaint loop.</p>
 	 */
 	public static BufferedImage renderSingleFrame(
 			final ViewerPanel viewer,
@@ -220,38 +222,39 @@ public final class MovieRenderer {
 		final Target target = new Target(width, height);
 		final MultiResolutionRenderer renderer = newRenderer(target);
 
+		// keyframe is source->screen; convert to world->screen for this viewer's source
+		final AffineTransform3D world = toWorld(viewer, keyTransform);
+
 		// route the keyframe through the animator centring, exactly like a movie frame
-		final AffineTransform3D tkd = new SimilarityTransformAnimator(keyTransform, keyTransform, width / 2.0, height / 2.0, 0).get(0);
+		final AffineTransform3D tkd = new SimilarityTransformAnimator(world, world, width / 2.0, height / 2.0, 0).get(0);
 		tkd.preConcatenate(recentre.inverse());
 		tkd.preConcatenate(recentre);
 
-		viewer.state().setViewerTransform(tkd);
-		renderState.setViewerTransform(tkd);
+		return paint(renderer, target, renderState, viewer, tkd, scalebar, box, width, height);
+	}
 
-		boolean valid = false;
-		for (int attempt = 0; attempt < 400 && !valid; ++attempt) {
-			renderer.requestRepaint();
-			valid = renderer.paint(renderState);
-			if (!valid) {
-				try {
-					Thread.sleep(25);
-				} catch (final InterruptedException e) {
-					Thread.currentThread().interrupt();
-					break;
-				}
-			}
+	/** Read the level-0 source transform of the viewer's first source (identity if unavailable). */
+	private static AffineTransform3D sourceTransform(final ViewerPanel viewer) {
+		final AffineTransform3D t = new AffineTransform3D();
+		try {
+			viewer.state().getSources().get(0).getSpimSource().getSourceTransform(0, 0, t);
+		} catch (final Exception e) {
+			// leave identity
 		}
+		return t;
+	}
 
-		final BufferedImage bi = target.renderResult.getBufferedImage();
-		final ColorProcessor ip = new ColorProcessor(bi);
-		final Graphics2D g2 = bi.createGraphics();
-		g2.drawImage(ip.createImage(), 0, 0, null);
-		g2.setClip(0, 0, width, height);
-		scalebar.setViewerState(renderState);
-		scalebar.paint(g2);
-		box.setViewerState(renderState);
-		box.paint(g2);
-		return bi;
+	/** Convert a stored source&rarr;screen keyframe to a world&rarr;screen viewer transform. */
+	private static AffineTransform3D toWorld(final ViewerPanel viewer, final AffineTransform3D sourceToScreen) {
+		return sourceToScreen.copy().concatenate(sourceTransform(viewer).inverse());
+	}
+
+	private static AffineTransform3D[] toWorldTransforms(final ViewerPanel viewer, final AffineTransform3D[] sourceToScreen) {
+		final AffineTransform3D inv = sourceTransform(viewer).inverse();
+		final AffineTransform3D[] out = new AffineTransform3D[sourceToScreen.length];
+		for (int k = 0; k < out.length; ++k)
+			out[k] = sourceToScreen[k] == null ? null : sourceToScreen[k].copy().concatenate(inv);
+		return out;
 	}
 
 	private static MultiResolutionRenderer newRenderer(final Target target) {

@@ -66,6 +66,10 @@ public final class MipmapSourceFactory {
 	 * @param scalePrefix "" for OME-Zarr (levels named 0,1,2,…), "s" for N5 (s0,s1,…)
 	 * @param clipMin/clipMax histogram clip range (only used for 16-bit sources)
 	 * @param claheSlope CLAHE clip-limit slope (the old hardcoded 1.5f)
+	 * @param volatileAccess build volatile-backed cells (for an interactive viewer with
+	 *        a fetch queue). Pass {@code false} for offscreen/headless rendering so cells
+	 *        load synchronously on demand at any position (a non-volatile viewer has no
+	 *        queue, so volatile cells would stay unloaded/black after navigation).
 	 */
 	@SuppressWarnings({"unchecked", "rawtypes"})
 	public static RandomAccessibleIntervalMipmapSource<UnsignedByteType> create(
@@ -77,9 +81,13 @@ public final class MipmapSourceFactory {
 			final int clipMax,
 			final double expansionFactor,
 			final float claheSlope,
-			final String scalePrefix) throws IOException {
+			final String scalePrefix,
+			final boolean volatileAccess) throws IOException {
 
-		System.out.println("Opening " + n5Path + " group '" + n5Group + "'");
+		final java.util.Set<AccessFlags> accessFlags =
+				volatileAccess ? AccessFlags.setOf(AccessFlags.VOLATILE) : AccessFlags.setOf();
+
+		System.out.println("Opening " + n5Path + " group '" + n5Group + "' (volatileAccess=" + volatileAccess + ")");
 		final N5Reader n5 = new N5Factory().openReader(n5Path);
 
 		// auto-detect how many scale levels exist (capped at 8)
@@ -102,7 +110,9 @@ public final class MipmapSourceFactory {
 			final int scale = 1 << scaleIndex;
 			final double inverseScale = 1.0 / scale;
 
-			RandomAccessibleInterval imgRawND = N5Utils.openVolatile(n5, n5Group + "/" + scalePrefix + scaleIndex);
+			RandomAccessibleInterval imgRawND = volatileAccess
+					? N5Utils.openVolatile(n5, n5Group + "/" + scalePrefix + scaleIndex)
+					: N5Utils.open(n5, n5Group + "/" + scalePrefix + scaleIndex);
 			// n5-zarr presents OME-Zarr as (X,Y,Z,C,T) in imglib2 order; strip trailing singleton dims to get 3D
 			while (imgRawND.numDimensions() > 3)
 				imgRawND = Views.hyperSlice(imgRawND, imgRawND.numDimensions() - 1, 0);
@@ -119,7 +129,7 @@ public final class MipmapSourceFactory {
 						(RandomAccessibleInterval<UnsignedShortType>) imgRaw,
 						new int[]{128, 128, 128},
 						new UnsignedByteType(),
-						AccessFlags.setOf(AccessFlags.VOLATILE),
+						accessFlags,
 						out -> Views.flatIterable(Views.interval(Views.pair((RandomAccessibleInterval<UnsignedShortType>) imgRaw, out), out)).forEach(
 								pair -> clipToUnsignedByte(clipMin, clipMax, pair.getA(), pair.getB())));
 			} else {
@@ -132,7 +142,7 @@ public final class MipmapSourceFactory {
 						imgFinal,
 						new int[]{128, 128, 128},
 						new UnsignedByteType(),
-						AccessFlags.setOf(AccessFlags.VOLATILE),
+						accessFlags,
 						out -> Views.flatIterable(Views.interval(Views.pair(imgFinal, out), out)).forEach(
 								pair -> pair.getB().set(255 - pair.getA().get())));
 			}
@@ -150,7 +160,7 @@ public final class MipmapSourceFactory {
 						255,
 						true);
 				mipmaps[scaleIndex] = Lazy.process(
-						img, new int[]{128, 128, 16}, new UnsignedByteType(), AccessFlags.setOf(AccessFlags.VOLATILE), op);
+						img, new int[]{128, 128, 16}, new UnsignedByteType(), accessFlags, op);
 			} else if (normalization == Normalization.CLAHE_WITH_THRESHOLDMASK) {
 				final ImageJStackOp<UnsignedByteType> op = new ImageJStackOp<>(
 						Views.extendZero(img),
@@ -180,7 +190,7 @@ public final class MipmapSourceFactory {
 						255,
 						true);
 				mipmaps[scaleIndex] = Lazy.process(
-						img, new int[]{128, 128, 16}, new UnsignedByteType(), AccessFlags.setOf(AccessFlags.VOLATILE), op);
+						img, new int[]{128, 128, 16}, new UnsignedByteType(), accessFlags, op);
 			} else {
 				mipmaps[scaleIndex] = img;
 			}

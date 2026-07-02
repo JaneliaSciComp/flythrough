@@ -24,6 +24,7 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Image;
 import java.awt.Point;
+import java.awt.Window;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
@@ -53,6 +54,7 @@ import org.janelia.saalfeldlab.moviemaker.MovieConfig;
 import org.janelia.saalfeldlab.moviemaker.MovieConfig.Segment;
 import org.janelia.saalfeldlab.moviemaker.MovieMaker;
 import org.janelia.saalfeldlab.moviemaker.core.MovieRenderer;
+import org.janelia.saalfeldlab.moviemaker.core.MovieViewer;
 import org.janelia.saalfeldlab.moviemaker.core.ViewTransforms.KeyPoint;
 
 import bdv.util.BdvStackSource;
@@ -379,19 +381,40 @@ public class VerifyFrame extends JFrame {
 	// ---- thumbnails ----
 
 	private void renderThumbnailsInBackground() {
-		final ViewerPanel vp = bdv.getBdvHandle().getViewerPanel();
 		new SwingWorker<Void, Row>() {
 			@Override
-			protected Void doInBackground() {
-				for (final Row r : rows) {
-					try {
-						final BufferedImage full = MovieRenderer.renderSingleFrame(
-								vp, cfg.screenWidth, cfg.screenHeight, r.kp.toTransform());
-						r.thumb = scale(full, thumbWidth, thumbHeight);
-					} catch (final Exception ex) {
-						ex.printStackTrace();
+			protected Void doInBackground() throws Exception {
+				// Render thumbnails from a dedicated NON-volatile viewer: paint() then
+				// blocks until each frame is fully and correctly rendered, so thumbnails
+				// are never captured black or lagging the previous transform (as they do
+				// on the asynchronous volatile navigation viewer).
+				BdvStackSource<?> thumbBdv = null;
+				try {
+					thumbBdv = MovieViewer.show(cfg, false);
+					final BdvStackSource<?> handle = thumbBdv;
+					final Window w = SwingUtilities.getWindowAncestor(handle.getBdvHandle().getViewerPanel());
+					SwingUtilities.invokeLater(() -> {
+						if (w != null)
+							w.setVisible(false);
+					});
+					final ViewerPanel vp = thumbBdv.getBdvHandle().getViewerPanel();
+					Thread.sleep(500);
+
+					for (final Row r : rows) {
+						try {
+							final BufferedImage full = MovieRenderer.renderSingleFrame(
+									vp, cfg.screenWidth, cfg.screenHeight, r.kp.toTransform());
+							r.thumb = scale(full, thumbWidth, thumbHeight);
+						} catch (final Exception ex) {
+							ex.printStackTrace();
+						}
+						publish(r);
 					}
-					publish(r);
+				} finally {
+					if (thumbBdv != null) {
+						final BdvStackSource<?> handle = thumbBdv;
+						SwingUtilities.invokeLater(() -> handle.getBdvHandle().close());
+					}
 				}
 				return null;
 			}

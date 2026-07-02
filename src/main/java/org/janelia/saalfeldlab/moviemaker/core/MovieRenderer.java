@@ -188,6 +188,12 @@ public final class MovieRenderer {
 	/**
 	 * Render a single frame at one keyframe (for verify-window thumbnails), using
 	 * the same offscreen path as {@link #recordMovie} so the preview matches output.
+	 *
+	 * <p>The viewer may be backed by a <em>volatile</em> source whose cells load
+	 * asynchronously; {@link MultiResolutionRenderer#paint} returns {@code false}
+	 * while data is still missing. We therefore repaint until it reports the frame
+	 * is fully resolved (or a timeout elapses), so thumbnails are not captured
+	 * black before the data has loaded.</p>
 	 */
 	public static BufferedImage renderSingleFrame(
 			final ViewerPanel viewer,
@@ -208,9 +214,33 @@ public final class MovieRenderer {
 		tkd.preConcatenate(recentre.inverse());
 		tkd.preConcatenate(recentre);
 
-		// paint twice: the first pass may only resolve coarse mipmaps
-		paint(renderer, target, renderState, viewer, tkd, scalebar, box, width, height);
-		return paint(renderer, target, renderState, viewer, tkd, scalebar, box, width, height);
+		viewer.state().setViewerTransform(tkd);
+		renderState.setViewerTransform(tkd);
+
+		boolean valid = false;
+		for (int attempt = 0; attempt < 400 && !valid; ++attempt) {
+			renderer.requestRepaint();
+			valid = renderer.paint(renderState);
+			if (!valid) {
+				try {
+					Thread.sleep(25);
+				} catch (final InterruptedException e) {
+					Thread.currentThread().interrupt();
+					break;
+				}
+			}
+		}
+
+		final BufferedImage bi = target.renderResult.getBufferedImage();
+		final ColorProcessor ip = new ColorProcessor(bi);
+		final Graphics2D g2 = bi.createGraphics();
+		g2.drawImage(ip.createImage(), 0, 0, null);
+		g2.setClip(0, 0, width, height);
+		scalebar.setViewerState(renderState);
+		scalebar.paint(g2);
+		box.setViewerState(renderState);
+		box.paint(g2);
+		return bi;
 	}
 
 	private static MultiResolutionRenderer newRenderer(final Target target) {

@@ -85,7 +85,16 @@ public class MovieConfig {
 	public int returnAccel = 0;
 
 	public List<KeyPoint> keyPoints = new ArrayList<>();
-	/** segments[k] = motion from keyPoints[k-1] to keyPoints[k]; segments[0] is unused. */
+	/**
+	 * segments[k] = motion INTO keyPoints[k] (frames + acceleration). The list is
+	 * kept index-aligned with {@link #keyPoints} so each key point carries its own
+	 * incoming timing (this is what makes reordering in the GUI a single list op).
+	 * <p>
+	 * <b>segments[0] is never read.</b> keyPoints[0] is the start of the movie, so
+	 * it has no incoming motion; its placeholder is normalized to {@code {0, 0}} by
+	 * {@link #syncSegments()} so the persisted JSON makes the no-op explicit. The
+	 * static pause at the start is set by {@link #holdFirstFrames} instead.
+	 */
 	public List<Segment> segments = new ArrayList<>();
 
 	public Normalization normalizationEnum() {
@@ -102,6 +111,13 @@ public class MovieConfig {
 			segments.add(new Segment(120, 0));
 		while (segments.size() > keyPoints.size())
 			segments.remove(segments.size() - 1);
+		// segments[0] is the incoming motion for keyPoints[0], which is the start of
+		// the movie and has none: pin it to a no-op so it never carries a misleading
+		// value into the saved config (see the field javadoc).
+		if (!segments.isEmpty()) {
+			segments.get(0).frames = 0;
+			segments.get(0).accel = 0;
+		}
 	}
 
 	// ---- Gson ----

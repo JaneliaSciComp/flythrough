@@ -328,6 +328,7 @@ public class VerifyFrame extends JFrame {
 		}
 		cfg.keyPoints = kps;
 		cfg.segments = segs;
+		cfg.syncSegments(); // pins segments[0] to a no-op (start point has no incoming motion)
 		cfg.holdFirstFrames = holdEnabled.isSelected() ? (Integer) holdFrames.getValue() : 0;
 		cfg.returnToFirst = returnEnabled.isSelected();
 		cfg.returnFrames = (Integer) returnFrames.getValue();

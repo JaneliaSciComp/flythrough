@@ -86,8 +86,12 @@ control:
   It is the movie-space viewer transform with the canvas-centre translation
   removed; the renderer adds the canvas centre back, so it is independent of the
   movie canvas size.
-- `segments[k]` is the motion from `keyPoints[k-1]` → `keyPoints[k]`
-  (`segments[0]` is unused / the arrival at the first key point).
+- `segments[k]` (`frames` + `accel`) is the motion **into** `keyPoints[k]`, i.e.
+  from `keyPoints[k-1]` → `keyPoints[k]`. The list is kept the same length as
+  `keyPoints` so each key point owns its incoming timing. **`segments[0]` is never
+  read** — `keyPoints[0]` is the start of the movie and has no incoming motion, so
+  it is always written as `{ "frames": 0, "accel": 0 }`. To pause on the first key
+  point, use `holdFirstFrames`, not `segments[0]`.
 - Acceleration types: `0` symmetric, `1` slow start, `2` slow end,
   `3` soft symmetric, `4` soft slow start, `5` soft slow end.
 

@@ -71,7 +71,7 @@ public class SetupPanel extends JFrame {
 	private final JTextField screenHeight = new JTextField("750", 8);
 	private final JTextField fps = new JTextField("30", 8);
 
-	private final JButton startButton = new JButton("Start → Navigate");
+	private final JButton startButton = new JButton("Start → Intensity");
 
 	public SetupPanel() {
 		super("Movie Maker – Setup");
@@ -129,7 +129,7 @@ public class SetupPanel extends JFrame {
 		return p;
 	}
 
-	private static int addRow(final JPanel form, final GridBagConstraints c, final int row, final String label, final java.awt.Component field) {
+	static int addRow(final JPanel form, final GridBagConstraints c, final int row, final String label, final java.awt.Component field) {
 		c.gridx = 0;
 		c.gridy = row;
 		c.fill = GridBagConstraints.NONE;
@@ -186,14 +186,14 @@ public class SetupPanel extends JFrame {
 			protected void done() {
 				try {
 					final BdvStackSource<?> bdv = get();
-					new NavigatorFrame(cfg, bdv).setVisible(true);
+					new IntensityFrame(cfg, bdv).setVisible(true);
 					setVisible(false);
 					dispose();
 				} catch (final Exception ex) {
 					ex.printStackTrace();
 					JOptionPane.showMessageDialog(SetupPanel.this, "Failed to open data:\n" + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 					startButton.setEnabled(true);
-					startButton.setText("Start → Navigate");
+					startButton.setText("Start → Intensity");
 				}
 			}
 		}.execute();

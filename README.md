@@ -6,7 +6,7 @@ microscopy volumes stored as **N5** or **OME-Zarr** (including Zarr v3). It is h
 
 The general workflow is as follows:
 ```
-setup → interactive keyframe capture → visual verify/reorder → JSON config → headless PNG render
+setup → intensity/CLAHE preview → interactive keyframe capture → visual verify/reorder → JSON config → headless PNG render
 ```
 
 ## Build
@@ -27,7 +27,10 @@ java -jar target/flythrough-0.0.1-SNAPSHOT.jar
 
 - **Setup**: enter the data path, output (movie) directory, expansion factor,
   CLAHE slope, and histogram clip range (min/max).
-- **Navigate**: a BigDataViewer window opens. Pan / zoom / scroll to a view you
+- **Intensity**: a BigDataViewer window opens with the values from setup. Adjust
+  normalization, CLAHE slope, clip min/max and invert, press **Reload preview** to
+  see them (the current view is kept), and **OK** when you are happy.
+- **Navigate**: the same BigDataViewer window; Pan / zoom / scroll to a view you
   like and press **T** to capture it as a key point. Key points are stored, in
   order, as the full viewer transform, so rotation is preserved.
 - **Verify**: each key point gets a thumbnail. Set the number of **frames** and

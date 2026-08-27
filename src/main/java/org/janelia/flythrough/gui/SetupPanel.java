@@ -48,13 +48,13 @@ import javax.swing.TransferHandler;
 
 import org.janelia.flythrough.MovieConfig;
 import org.janelia.flythrough.core.MovieViewer;
-import org.janelia.flythrough.core.Normalization;
 
 import bdv.util.BdvStackSource;
 
 /**
- * Stage 1: collect the dataset and display parameters, then open the data in a
- * BigDataViewer window for keyframe capture (Stage 2).
+ * Stage 1: collect the dataset, output and canvas parameters, then open the data
+ * in a BigDataViewer window for intensity tuning (Stage 1b). Intensity /
+ * normalization defaults come from {@link MovieConfig} and are edited there.
  */
 public class SetupPanel extends JFrame {
 
@@ -65,11 +65,6 @@ public class SetupPanel extends JFrame {
 	private final JComboBox<String> scalePrefix = new JComboBox<>(new String[]{"", "s"});
 	private final JTextField moviePath = new JTextField(36);
 	private final JTextField expansionFactor = new JTextField("1.0", 8);
-	private final JComboBox<Normalization> normalization = new JComboBox<>(Normalization.values());
-	private final JTextField claheSlope = new JTextField("1.5", 8);
-	private final JTextField histogramMin = new JTextField("0", 8);
-	private final JTextField histogramMax = new JTextField("65535", 8);
-	private final JComboBox<String> invert = new JComboBox<>(new String[]{"no", "yes"});
 	private final JTextField screenWidth = new JTextField("1050", 8);
 	private final JTextField screenHeight = new JTextField("750", 8);
 	private final JTextField fps = new JTextField("30", 8);
@@ -79,7 +74,6 @@ public class SetupPanel extends JFrame {
 	public SetupPanel() {
 		super("Movie Maker – Setup");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		normalization.setSelectedItem(Normalization.CLAHE);
 		buildUi();
 		pack();
 		setLocationRelativeTo(null);
@@ -97,11 +91,6 @@ public class SetupPanel extends JFrame {
 		row = addRow(form, c, row, "Scale prefix (\"\"=OME-Zarr, \"s\"=N5):", scalePrefix);
 		row = addRow(form, c, row, "Movie output directory:", withBrowse(moviePath, false));
 		row = addRow(form, c, row, "Expansion factor:", expansionFactor);
-		row = addRow(form, c, row, "Normalization:", normalization);
-		row = addRow(form, c, row, "CLAHE slope:", claheSlope);
-		row = addRow(form, c, row, "Histogram clip min (16-bit):", histogramMin);
-		row = addRow(form, c, row, "Histogram clip max (16-bit):", histogramMax);
-		row = addRow(form, c, row, "Invert intensities:", invert);
 		row = addRow(form, c, row, "Screen width:", screenWidth);
 		row = addRow(form, c, row, "Screen height:", screenHeight);
 		row = addRow(form, c, row, "FPS (for playback):", fps);
@@ -187,11 +176,6 @@ public class SetupPanel extends JFrame {
 		cfg.scalePrefix = (String) scalePrefix.getSelectedItem();
 		cfg.moviePath = moviePath.getText().trim();
 		cfg.expansionFactor = Double.parseDouble(expansionFactor.getText().trim());
-		cfg.normalization = ((Normalization) normalization.getSelectedItem()).name();
-		cfg.claheSlope = Float.parseFloat(claheSlope.getText().trim());
-		cfg.histogramMin = Integer.parseInt(histogramMin.getText().trim());
-		cfg.histogramMax = Integer.parseInt(histogramMax.getText().trim());
-		cfg.invert = "yes".equals(invert.getSelectedItem());
 		cfg.screenWidth = Integer.parseInt(screenWidth.getText().trim());
 		cfg.screenHeight = Integer.parseInt(screenHeight.getText().trim());
 		cfg.fps = Integer.parseInt(fps.getText().trim());

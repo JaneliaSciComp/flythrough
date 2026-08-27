@@ -26,7 +26,8 @@ java -jar target/flythrough-0.0.1-SNAPSHOT.jar
 ```
 
 - **Setup**: enter the data path, output (movie) directory, expansion factor,
-  CLAHE slope, and histogram clip range (min/max).
+  CLAHE slope, and histogram clip range (min/max). The two path fields accept
+  files/folders dropped from the desktop.
 - **Intensity**: a BigDataViewer window opens with the values from setup. Adjust
   normalization, CLAHE slope, clip min/max and invert, press **Reload preview** to
   see them (the current view is kept), and **OK** when you are happy.

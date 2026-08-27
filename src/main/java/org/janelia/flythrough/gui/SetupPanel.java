@@ -31,7 +31,9 @@ import java.awt.BorderLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.datatransfer.DataFlavor;
 import java.io.File;
+import java.util.List;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -42,6 +44,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingWorker;
+import javax.swing.TransferHandler;
 
 import org.janelia.flythrough.MovieConfig;
 import org.janelia.flythrough.core.MovieViewer;
@@ -113,7 +116,42 @@ public class SetupPanel extends JFrame {
 		getContentPane().add(south, BorderLayout.SOUTH);
 	}
 
+	/** Accept a file/folder dropped from the desktop; directory-only fields take the parent of a dropped file. */
+	private static void installDrop(final JTextField field, final boolean filesAndDirs) {
+		field.setTransferHandler(new TransferHandler() {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public boolean canImport(final TransferSupport s) {
+				return s.isDataFlavorSupported(DataFlavor.javaFileListFlavor)
+						|| s.isDataFlavorSupported(DataFlavor.stringFlavor);
+			}
+
+			@Override
+			public boolean importData(final TransferSupport s) {
+				try {
+					if (s.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+						final List<?> files = (List<?>) s.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
+						if (files.isEmpty())
+							return false;
+						File f = (File) files.get(0);
+						if (!filesAndDirs && !f.isDirectory() && f.getParentFile() != null)
+							f = f.getParentFile();
+						field.setText(f.getAbsolutePath());
+					} else {
+						field.setText(((String) s.getTransferable().getTransferData(DataFlavor.stringFlavor)).trim());
+					}
+					return true;
+				} catch (final Exception ex) {
+					ex.printStackTrace();
+					return false;
+				}
+			}
+		});
+	}
+
 	private JPanel withBrowse(final JTextField field, final boolean filesAndDirs) {
+		installDrop(field, filesAndDirs);
 		final JPanel p = new JPanel(new BorderLayout(4, 0));
 		p.add(field, BorderLayout.CENTER);
 		final JButton browse = new JButton("…");

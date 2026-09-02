@@ -28,7 +28,9 @@
 package org.janelia.flythrough.core;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
 
@@ -37,6 +39,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import mpicbg.spim.data.sequence.FinalVoxelDimensions;
+
 import mpicbg.spim.data.sequence.VoxelDimensions;
 
 /**
@@ -239,13 +242,84 @@ public final class ZarrScaleMetadata {
 	}
 
 	/**
+	 * Metres per spatial unit, for the unit names OME-NGFF uses (UDUNITS spells
+	 * them out: {@code "micrometer"}, {@code "angstrom"}, …) plus the common short
+	 * symbols. Used to express the voxel size in a unit BDV's scale bar knows.
+	 */
+	private static final Map<String, Double> METRES_PER_UNIT = new HashMap<>();
+	static {
+		final String[] names = {
+				"yoctometer", "zeptometer", "attometer", "femtometer", "picometer", "angstrom",
+				"nanometer", "nm", "micrometer", "micron", "um", "\u00b5m",
+				"millimeter", "mm", "centimeter", "cm", "decimeter", "dm", "meter", "m",
+				"decameter", "hectometer", "kilometer", "km",
+				"megameter", "gigameter", "terameter", "petameter", "exameter", "zettameter", "yottameter"};
+		final double[] metres = {
+				1e-24, 1e-21, 1e-18, 1e-15, 1e-12, 1e-10,
+				1e-9, 1e-9, 1e-6, 1e-6, 1e-6, 1e-6,
+				1e-3, 1e-3, 1e-2, 1e-2, 1e-1, 1e-1, 1.0, 1.0,
+				1e1, 1e2, 1e3, 1e3,
+				1e6, 1e9, 1e12, 1e15, 1e18, 1e21, 1e24};
+		for (int i = 0; i < names.length; ++i)
+			METRES_PER_UNIT.put(names[i], metres[i]);
+	}
+
+	/** Metres per {@link #unit}, or {@code null} if it is not a known metric unit. */
+	private Double metresPerUnit() {
+		String u = unit.toLowerCase().replace("metre", "meter");
+		if (u.endsWith("s"))
+			u = u.substring(0, u.length() - 1);
+		return METRES_PER_UNIT.get(u);
+	}
+
+	/**
 	 * Physical voxel size for the scale bar: the level-0 spacing divided by the
 	 * (biological) expansion factor.
+	 *
+	 * <p>BDV's scale bar only recognises {@code nm / \u00b5m / mm / m / km} (it shifts the
+	 * prefix itself to keep the label short) and prints any other unit string
+	 * verbatim without shifting. Metric units are therefore converted to
+	 * micrometres here, so a dataset labelled {@code "micrometer"}, {@code "nanometer"}
+	 * or {@code "centimeter"} all give a correctly-scaled, correctly-labelled bar.
+	 * Non-metric units (foot, inch, parsec, or the {@code "px"} fallback) are passed
+	 * through unconverted.</p>
 	 */
 	public VoxelDimensions voxelDimensions(final double expansionFactor) {
 		final double[] s0 = levelSpacingXYZ[0];
+		final Double metres = metresPerUnit();
+		final double toBar = (metres == null ? 1.0 : metres * 1e6) / expansionFactor;
+		final String barUnit = metres == null ? unit : "\u00b5m";
+		System.out.println("Scale bar: " + s0[0] * toBar + " " + barUnit + "/px at level 0"
+				+ " (metadata unit '" + unit + "', expansion factor " + expansionFactor + ")");
 		return new FinalVoxelDimensions(
-				unit,
-				new double[]{s0[0] / expansionFactor, s0[1] / expansionFactor, s0[2] / expansionFactor});
+				barUnit,
+				new double[]{s0[0] * toBar, s0[1] * toBar, s0[2] * toBar});
+	}
+
+	/** Self-check: {@code java -cp target/classes org.janelia.flythrough.core.ZarrScaleMetadata} */
+	public static void main(final String[] args) {
+		// 500 nm voxels -> 0.5 µm; BDV then labels the bar in nm/µm as it sees fit
+		check("nanometer", 500, 1.0, "\u00b5m", 0.5);
+		// spelling / plural / short-symbol variants of the same thing
+		check("nanometre", 500, 1.0, "\u00b5m", 0.5);
+		check("nanometers", 500, 1.0, "\u00b5m", 0.5);
+		check("nm", 500, 1.0, "\u00b5m", 0.5);
+		// 3 µm voxels of a 30x expanded sample are 0.1 µm of original tissue
+		check("micrometer", 3, 30.0, "\u00b5m", 0.1);
+		check("centimeter", 2, 1.0, "\u00b5m", 20000);
+		// unknown / non-metric units pass through untouched
+		check("px", 1, 1.0, "px", 1);
+		check("foot", 2, 1.0, "foot", 2);
+		System.out.println("ZarrScaleMetadata self-check OK");
+	}
+
+	private static void check(final String unit, final double spacing, final double expansionFactor,
+			final String expectUnit, final double expectSize) {
+		final ZarrScaleMetadata meta = new ZarrScaleMetadata(
+				new double[][]{{spacing, spacing, spacing}}, unit, true);
+		final VoxelDimensions vd = meta.voxelDimensions(expansionFactor);
+		if (!expectUnit.equals(vd.unit()) || Math.abs(vd.dimension(0) - expectSize) > 1e-9 * expectSize)
+			throw new AssertionError(unit + " -> " + vd.dimension(0) + " " + vd.unit()
+					+ ", expected " + expectSize + " " + expectUnit);
 	}
 }

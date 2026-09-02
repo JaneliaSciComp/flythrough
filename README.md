@@ -100,7 +100,12 @@ control:
   `3` soft symmetric, `4` soft slow start, `5` soft slow end.
 
 Per-level scale / anisotropy is read automatically from the dataset's OME-NGFF
-`multiscales` metadata — there is no anisotropy parameter.
+`multiscales` metadata — there is no anisotropy parameter. The spatial `unit` from
+that metadata drives the scale bar: metric units (OME-NGFF spells them out,
+`"micrometer"`, `"nanometer"`, `"centimeter"`, …) are converted to micrometres, which
+BigDataViewer then labels as nm / µm / mm / m as appropriate. Non-metric units are
+passed through as-is. The bar is in units of the sample *before* expansion, i.e.
+voxel size divided by `expansionFactor`.
 
 ## Scope
 
